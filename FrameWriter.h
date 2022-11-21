@@ -43,7 +43,7 @@ public:
     size_t getFrameCnt() const{ return frame_cnt; }
     size_t getFrameSize() const{ return frame_size; }
     size_t getSyncErr() const{ return sync_err; }
-    auto getTimer() const{ return std::chrono::duration_cast<std::chrono::seconds>(time[1]-time[0]); }
+    auto getTimer() const{ return std::chrono::duration_cast<std::chrono::seconds>(time[1]-time[0]).count(); }
     std::string getInputFile() { return input_file; }
     std::string getOutputFile() { return output_file; }
 

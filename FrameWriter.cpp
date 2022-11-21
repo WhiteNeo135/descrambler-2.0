@@ -43,14 +43,14 @@ void FrameWriter::writeReport(Report & data , int type)
             report << std::endl;
             break;
         case 1:
-            float percent=(data.getBip8FrameErrors()/(data.getFrameCnt()-2))*100;
+            float percent=float(data.getBip8FrameErrors()/(data.getFrameCnt()-2))*100;
             report << time << " Размер кадра: "  << data.getFrameSize() <<  std::endl;
             report << time << " Байт PT: "  << std::hex << data.getPt() <<std::dec <<  std::endl;
             report << time << " Обработано кадров: "  << data.getFrameCnt() << ""<< std::endl;
             report << time << " Обнаружено срывов синхронизации: "  << data.getSyncErr() << ""<< std::endl;
             report << time << " Кадров с ошибкой BIP-8:  "  << data.getFrameCnt()-data.getBip8FrameErrors()-2 << ""<< std::endl;
             report << time << " Процентное соотношение кадров без ошибки BIP-8 к общему числу кадров: "  << percent << "%"<< std::endl;
-            report << time << " Время работы: "  << data.getTimer() <<  std::endl;
+            report << time << " Время работы: "  << data.getTimer() <<"с "<<  std::endl;
             report << std::endl<< std::endl;
             break;
     }
