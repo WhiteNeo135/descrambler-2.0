@@ -5,6 +5,7 @@
 #include <fstream>
 #include "constants.h"
 #include "Frame.h"
+#include "FrameWriter.h"
 
 class FrameReader
 {
@@ -20,7 +21,7 @@ private:
 
     bool checkSync(char frame[]);
     size_t readfile(size_t size, bool stuff=true, size_t pos=0);
-    bool find_begin_and_sync();
+    bool find_begin_and_sync(size_t pos=0);
 
 public:
     FrameReader() = delete;
@@ -28,8 +29,8 @@ public:
 
     ~FrameReader() = default;
 
-    Frame getFrame();
-    size_t getSize(){ return file_size; };
+    Frame getFrame(Report &report);
+    size_t getSize() const{ return file_size; };
 };
 
 #endif // FRAME_READER_H

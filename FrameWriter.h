@@ -13,6 +13,7 @@ class Report
     size_t pt=0;
     size_t frame_cnt=0;
     size_t frame_size=0;
+    size_t sync_err=0;
     float file_size=0;
     size_t bip_8_cnt=0;
     std::chrono::time_point<std::chrono::_V2::system_clock> time[2];
@@ -33,13 +34,15 @@ public:
     void startTimer(){ time[0]= std::chrono::system_clock::now(); }
     void stopTimer(){ time[1]= std::chrono::system_clock::now(); }
     void increaseFrameCnt(){ ++frame_cnt; }
-
     void increaseBip8Cnt(){ ++bip_8_cnt; }
+    void increaseSyncErr(){ ++sync_err; }
+
     size_t getBip8FrameErrors() const{ return bip_8_cnt; }
     size_t getPt() const{ return pt; }
-    size_t getFileSize() const{ return file_size; }
+    float getFileSize() const{ return file_size; }
     size_t getFrameCnt() const{ return frame_cnt; }
     size_t getFrameSize() const{ return frame_size; }
+    size_t getSyncErr() const{ return sync_err; }
     auto getTimer() const{ return std::chrono::duration_cast<std::chrono::seconds>(time[1]-time[0]); }
     std::string getInputFile() { return input_file; }
     std::string getOutputFile() { return output_file; }

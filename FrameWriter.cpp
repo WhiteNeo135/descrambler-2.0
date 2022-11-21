@@ -20,37 +20,37 @@ void FrameWriter::writeFrame()
     buffer.clear();
 }
 
-void FrameWriter::writeReport(Report & data , int type)
+std::string getTime()
 {
-    std::stringstream report;
     time_t now= time(nullptr);
     char* dt = ctime(&now);
     tm *local= localtime(&now);
+    std::stringstream ss;
+    ss<< local->tm_year+1900 <<"/" << local->tm_mon << "/" << local->tm_hour<<":" << local->tm_min << ":" << local->tm_sec<<" ";
+    return ss.str();
+}
+
+void FrameWriter::writeReport(Report & data , int type)
+{
+    std::stringstream report;
+    std::string time=getTime().append(" ");
     switch (type)
     {
         case 0:
-            report << local->tm_year+1900 <<"/" << local->tm_mon << "/" << local->tm_hour<<":" << local->tm_min << ":" << local->tm_sec<<" ";
-            report << " Исходный файл: "  << data.getInputFile() << std::endl;
-            report << local->tm_year+1900 <<"/" << local->tm_mon << "/" << local->tm_hour<<":" << local->tm_min << ":" << local->tm_sec<<" ";
-            report << " Размер файла: "  <<  data.getFileSize()/1024/1024 <<" мегабайт" << std::endl;
-            report << local->tm_year+1900 <<"/" << local->tm_mon << "/" << local->tm_hour<<":" << local->tm_min << ":" << local->tm_sec<<" ";
-            report << " Выходной файл: "  << data.getOutputFile() <<  std::endl;
+            report << time << " Исходный файл: "  << data.getInputFile() << std::endl;
+            report << time << " Размер файла: "  <<  data.getFileSize()/1024/1024 <<" мегабайт" << std::endl;
+            report << time << " Выходной файл: "  << data.getOutputFile() <<  std::endl;
             report << std::endl;
             break;
         case 1:
             float percent=(data.getBip8FrameErrors()/(data.getFrameCnt()-2))*100;
-            report << local->tm_year+1900 <<"/" << local->tm_mon << "/" << local->tm_hour<<":" << local->tm_min << ":" << local->tm_sec<<" ";
-            report << " Размер кадра: "  << data.getFrameSize() <<  std::endl;
-            report << local->tm_year+1900 <<"/" << local->tm_mon << "/" << local->tm_hour<<":" << local->tm_min << ":" << local->tm_sec<<" ";
-            report << " Байт PT: "  << std::hex << data.getPt() <<std::dec <<  std::endl;
-            report << local->tm_year+1900 <<"/" << local->tm_mon << "/" << local->tm_hour<<":" << local->tm_min << ":" << local->tm_sec<<" ";
-            report << " Обработано кадров: "  << data.getFrameCnt() << ""<< std::endl;
-            report << local->tm_year+1900 <<"/" << local->tm_mon << "/" << local->tm_hour<<":" << local->tm_min << ":" << local->tm_sec<<" ";
-            report << " Кадров с ошибкой BIP-8:  "  << data.getFrameCnt()-data.getBip8FrameErrors()-2 << ""<< std::endl;
-            report << local->tm_year+1900 <<"/" << local->tm_mon << "/" << local->tm_hour<<":" << local->tm_min << ":" << local->tm_sec<<" ";
-            report << " Процентное соотношение кадров без ошибки BIP-8 к общему числу кадров: "  << percent << "%"<< std::endl;
-            report << local->tm_year+1900 <<"/" << local->tm_mon << "/" << local->tm_hour<<":" << local->tm_min << ":" << local->tm_sec<<" ";
-            report << " Время работы: "  << data.getTimer() <<  std::endl;
+            report << time << " Размер кадра: "  << data.getFrameSize() <<  std::endl;
+            report << time << " Байт PT: "  << std::hex << data.getPt() <<std::dec <<  std::endl;
+            report << time << " Обработано кадров: "  << data.getFrameCnt() << ""<< std::endl;
+            report << time << " Обнаружено срывов синхронизации: "  << data.getSyncErr() << ""<< std::endl;
+            report << time << " Кадров с ошибкой BIP-8:  "  << data.getFrameCnt()-data.getBip8FrameErrors()-2 << ""<< std::endl;
+            report << time << " Процентное соотношение кадров без ошибки BIP-8 к общему числу кадров: "  << percent << "%"<< std::endl;
+            report << time << " Время работы: "  << data.getTimer() <<  std::endl;
             report << std::endl<< std::endl;
             break;
     }

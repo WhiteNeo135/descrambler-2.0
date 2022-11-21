@@ -1,5 +1,6 @@
 #include <iostream>
 #include "FrameReader.h"
+#include "FrameWriter.h"
 #include "Frame.h"
 
 char sync_bytes[]={char(0xf6), char(0xf6),char(0xf6),char(0x28),char(0x28),char(0x28)};
@@ -22,7 +23,7 @@ int find_sync(const std::unique_ptr<char[]>& buf, size_t begin)
 {
     int error=0;
     bool done;
-    for (int i=begin; i<begin+min_frame*6 -5;)
+    for (int i=begin; i<(begin+min_frame*6) -5;)
     {
         done=true;
         error=0;
@@ -63,7 +64,7 @@ bool FrameReader::checkSync(char frame[])
 
 void shift(){}
 
-bool FrameReader::find_begin_and_sync()
+bool FrameReader::find_begin_and_sync(size_t pos)
 {
     int pointers[4];
     size_t shifted=0;
@@ -73,7 +74,7 @@ bool FrameReader::find_begin_and_sync()
         done=true;
         for (size_t i = 0; i < 4; ++i)
         {
-            pointers[i] = find_sync(buf, (i == 0) ? 0 : pointers[i - 1] + (min_frame)); //positions of syncs
+            pointers[i] = find_sync(buf, (i == 0) ? pos : pointers[i - 1] + (min_frame)); //positions of syncs
             if (pointers[i] == -1)
             {
                 done=false;
@@ -105,25 +106,24 @@ bool FrameReader::find_begin_and_sync()
         size_of_frame = length[1];
         begin=pointers[1];
     }
-
-    file.seekg(begin);
     return true;
 
 }
 
-Frame FrameReader::getFrame()
+Frame FrameReader::getFrame(Report &report)
 {
-    if(size_of_frame==0)
+    if(size_of_frame==0) //"first enter" sync
     {
         readfile(max_frame * 6);
         if(!find_begin_and_sync())
             return {};
+
         buf.reset(new char[size_of_frame*100]);
     }
 
-    if(proccessed == 0 || begin + size_of_frame > buf_size)
+    if(proccessed == 0 || begin + size_of_frame > buf_size)  //frame if possible either new buffer
     {
-        if (readfile(size_of_frame*100, false)<size_of_frame)
+        if (readfile(size_of_frame*100, false, (proccessed) == 0? begin : proccessed)<size_of_frame)
             return {};
         begin=0;
     }
@@ -132,15 +132,22 @@ Frame FrameReader::getFrame()
     memcpy(frame, &buf.get()[begin], size_of_frame);
     begin+=size_of_frame;
 
-    sync_err=checkSync(frame);
+    if (checkSync(frame))
+        ++sync_err;
+    else
+        sync_err=0;
     if(sync_err==3)
     {
-        readfile(size_of_frame*4, true, begin);
-        if (!find_begin_and_sync())
+        report.increaseSyncErr();
+        if (!find_begin_and_sync(begin))
             return {};
+        proccessed-=(size_of_frame*100)-begin;
+        if (readfile(size_of_frame*100, false, proccessed)<size_of_frame)
+            return {};
+        sync_err=0;
+        begin=0;
         memcpy(frame, &buf.get()[begin], size_of_frame);
         begin+=size_of_frame;
-
     }
 
     return Frame(frame, size_of_frame);
@@ -164,6 +171,9 @@ size_t FrameReader::readfile(size_t size, bool stuff, size_t pos)
     }
     else
     {
+        if (proccessed==0)
+            proccessed+=begin;
+        file.seekg(pos);
         while (buf_size < (size_of_frame * 100) && proccessed<file_size)
         {
             read = file.readsome(reinterpret_cast<char*>(buf.get()+buf_size), (file_size >= proccessed + size) ? ((size_of_frame*100) - buf_size- read) : file_size - proccessed);

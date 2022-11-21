@@ -16,7 +16,7 @@ void Frame::setJC()
 {
     jc = static_cast<unsigned char>(buffer[JC_POS]);
     jc <<= 8;
-    jc |= static_cast<unsigned char>(buffer[JC_POS+4080]);
+    jc |= static_cast<unsigned char>(buffer[JC_POS+frame_size/4]);
 
     int indicator = jc & 0b11;
     jc >>= 2;
