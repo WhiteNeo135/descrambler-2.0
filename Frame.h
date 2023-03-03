@@ -6,6 +6,8 @@
 #include <array>
 #include <cstring>
 #include <vector>
+#include <map>
+#include <fstream>
 #include "constants.h"
 
 class Descrambler
@@ -25,25 +27,34 @@ public:
 
 class Frame
 {
-    std::unique_ptr<char[]> buffer;
-    size_t jc;
+protected:
+    std::vector<char> buffer;
     size_t frame_size;
-    static constexpr int pm = 190;
-    bool init;
+    int pm = 190;
+    bool init=false;
     static size_t serial;
+    static bool gmp_cnt;
 
     static char BIP_8[2];
 
 public:
-    Frame()=default;
     explicit Frame(char frame[], int size);
-
+    Frame()=default;
     char operator[](size_t pos) const { return buffer[pos]; }
     explicit operator bool() const{ return init; }
 
-    void descramble(Descrambler descrambler);
+    void descramble(Descrambler& descrambler);
 
-    void setJC();
+    char getMFAS() const { return buffer[6]; }
+    char getPayloadByte(size_t pos);
+    size_t getBIP_8() const { return BIP_8[serial%2]; }
+    size_t getSerial() { return serial; }
+    size_t getPm() const { return pm; }
+    size_t getSize() const { return buffer.size(); }
+    size_t getPT() const { return buffer[getSize() / 4 * 3 + 14]; }
+    size_t getGMP_cnt() const { return buffer[getSize() / 4 * 3 + 15]; }
+    char* getiter(int pos){return &buffer[pos];};
+    void setPayload();
     void setBIP_8()
     {
         BIP_8[serial%2]=0;
@@ -55,14 +66,11 @@ public:
             }
         }
     }
-    char getMFAS() const { return buffer[6]; }
-    size_t getJC() const { return jc; }
-    size_t getPm() const { return pm; }
-    size_t getSize() const { return frame_size; }
-    size_t getSerial() const { return serial; }
-    size_t getBIP_8() const { return BIP_8[serial%2]; }
-    char getPayloadByte(size_t pos);
+
+    //bool checkGMP_cnt() { return gmp_cnt; }
+    void setPm(int num) { pm = num; }
 
 };
+
 
 #endif //FRAME_H

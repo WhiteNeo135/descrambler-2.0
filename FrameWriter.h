@@ -1,68 +1,55 @@
 #ifndef FRAME_WRITER_H
 #define FRAME_WRITER_H
 
-#include <string>
-#include <fstream>
-#include <utility>
+#include "Frame.h"
+#include "FrameHolders.h"
 #include <vector>
-#include <ctime>
 #include <chrono>
 
 class Report
 {
-    size_t pt=0;
-    size_t frame_cnt=0;
-    size_t frame_size=0;
-    size_t sync_err=0;
-    float file_size=0;
-    size_t bip_8_cnt=0;
-    std::chrono::time_point<std::chrono::_V2::system_clock> time[2];
+protected:
+    bool setted=false;
+    size_t pt_temp[3]= {0,0,0};
+    std::chrono::system_clock::time_point time[2];
     std::string input_file;
     std::string output_file;
+    std::string report_file;
+
+    std::map<std::string, long > props;
 
 public:
-    Report()=delete;
-    Report(std::string filename): input_file(std::move(filename))
-    {
-        output_file= input_file+".output";
-    }
+    Report()=default;
+    explicit Report(const std::string& filename);
     ~Report()=default;
 
-    void setFileSize(float size) { file_size = size; }
-    void setFrameSize(size_t num){ frame_size=num; }
-    void setPt(size_t num){ pt=num; }
-    void startTimer(){ time[0]= std::chrono::system_clock::now(); }
-    void stopTimer(){ time[1]= std::chrono::system_clock::now(); }
-    void increaseFrameCnt(){ ++frame_cnt; }
-    void increaseBip8Cnt(){ ++bip_8_cnt; }
-    void increaseSyncErr(){ ++sync_err; }
-
-    size_t getBip8FrameErrors() const{ return bip_8_cnt; }
-    size_t getPt() const{ return pt; }
-    float getFileSize() const{ return file_size; }
-    size_t getFrameCnt() const{ return frame_cnt; }
-    size_t getFrameSize() const{ return frame_size; }
-    size_t getSyncErr() const{ return sync_err; }
+    void frameHandle(Frame& frame);
+    void addProp(const std::string& key, long value);
+    void increaseProp(std::string key);
+    long getProp(const std::string& key);
+    void setPt(size_t num);
     auto getTimer() const{ return std::chrono::duration_cast<std::chrono::seconds>(time[1]-time[0]).count(); }
-    std::string getInputFile() { return input_file; }
-    std::string getOutputFile() { return output_file; }
-
-
+    void writeReport( int type);
 };
 
 class FrameWriter
 {
+protected:
+    const size_t max_size=100;
+    size_t writes=0;
+    std::string file_root;
+    std::string file_type;
+    std::string file_name;
     std::ofstream output_file;
-    std::ofstream report_file;
-    std::vector<char> buffer;
+    std::vector<std::ofstream> files;
+//    std::map<std::string, std::vector<char> > buf;
+    std::vector< std::pair<  std::string, std::vector<char>> > buf;
 public:
-    FrameWriter() = delete;
-    ~FrameWriter() = default;
-    explicit FrameWriter(const std::string& filename);
-    void setPayloadByte(char byte){ buffer.emplace_back(byte); }
+    explicit FrameWriter(const std::string& _filename);
+    void pushPayload(FrameHolder& holder);
     void writeFrame();
+    std::vector<std::string> getFilenames();
 
-    void writeReport(Report & data, int type);
 };
 
 #endif

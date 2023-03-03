@@ -53,11 +53,11 @@ int find_sync(const std::unique_ptr<char[]>& buf, size_t begin)
 }
 
 
-bool FrameReader::checkSync(char frame[])
+bool FrameReader::checkSync(char _frame[])
 {
     int errors=0;
     for (int i=5; i>=0; --i)
-        if (!check_byte(frame[i],i,errors))
+        if (!check_byte(_frame[i], i, errors))
             return true;
     return false;
 }
@@ -110,25 +110,29 @@ bool FrameReader::find_begin_and_sync(size_t pos)
 
 }
 
+
+
 Frame FrameReader::getFrame(Report &report)
 {
-    if(size_of_frame==0) //"first enter" sync
+    if (size_of_frame==0) //"first enter" sync
     {
-        readfile(max_frame * 6);
+        report.addProp("miss_sync", 0);
+        readfile(max_frame * 10);
         if(!find_begin_and_sync())
             return {};
 
+        report.addProp("frame_size", size_of_frame);
         buf.reset(new char[size_of_frame*100]);
     }
 
-    if(proccessed == 0 || begin + size_of_frame > buf_size)  //frame if possible either new buffer
+    if(begin + size_of_frame > buf_size)  //frame if possible either new buffer
     {
         if (readfile(size_of_frame*100, false, (proccessed) == 0? begin : proccessed)<size_of_frame)
             return {};
         begin=0;
     }
 
-    char frame[size_of_frame];
+    //char* frame= new char[size_of_frame];
     memcpy(frame, &buf.get()[begin], size_of_frame);
     begin+=size_of_frame;
 
@@ -136,12 +140,14 @@ Frame FrameReader::getFrame(Report &report)
         ++sync_err;
     else
         sync_err=0;
-    if(sync_err==3)
+
+    if (sync_err==3)
     {
-        report.increaseSyncErr();
+        report.increaseProp("miss_sync");
         if (!find_begin_and_sync(begin))
             return {};
         proccessed-=(size_of_frame*100)-begin;
+
         if (readfile(size_of_frame*100, false, proccessed)<size_of_frame)
             return {};
         sync_err=0;
@@ -150,14 +156,18 @@ Frame FrameReader::getFrame(Report &report)
         begin+=size_of_frame;
     }
 
+
     return Frame(frame, size_of_frame);
 }
 
 FrameReader::FrameReader(const std::string &filename)
 {
      file.open(filename, std::ios::binary | std::ios::ate);
+     if (!file.good())
+        return;
      file_size = file.tellg();
      file.seekg(0);
+     init=true;
 }
 
 size_t FrameReader::readfile(size_t size, bool stuff, size_t pos)
@@ -171,15 +181,29 @@ size_t FrameReader::readfile(size_t size, bool stuff, size_t pos)
     }
     else
     {
-        if (proccessed==0)
-            proccessed+=begin;
+        if (proccessed == 0)
+            proccessed += begin;
         file.seekg(pos);
-        while (buf_size < (size_of_frame * 100) && proccessed<file_size)
-        {
-            read = file.readsome(reinterpret_cast<char*>(buf.get()+buf_size), (file_size >= proccessed + size) ? ((size_of_frame*100) - buf_size- read) : file_size - proccessed);
-            proccessed += read;
-            buf_size += read;
-        }
+        read = (file_size >= proccessed + size) ? (size_of_frame * 100) : file_size - proccessed;
+        file.read(reinterpret_cast<char*>(buf.get() + buf_size), read);
+        proccessed += read;
+        buf_size += read;
     }
     return buf_size;
 }
+
+/*size_t FrameReader::getPt(bool descramble)
+{
+    Report report;
+    while(true)
+    {
+        Frame frame = getFrame(report);
+        if (descramble)
+            frame.descramble(Descrambler(frame.getSize()));
+        if (frame.getMFAS()!=0x0)
+            continue;
+        else
+            return frame.getPT();
+    }
+    return 0;
+}*/

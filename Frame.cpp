@@ -1,34 +1,20 @@
 #include "Frame.h"
+#include <memory>
 
 size_t Frame::serial =0;
+bool Frame::gmp_cnt =false;
 char Frame::BIP_8[2] ={0,0};
 
-Frame::Frame(char frame[], int size)
+
+
+Frame::Frame(char *frame, int size)
 {
-    buffer.reset(new char[size]);
-    memcpy(buffer.get(), frame, size);
+//    buffer.reset(new char[size]);
+    buffer.resize(size);
+    memcpy(buffer.data(), frame, size);
     frame_size=size;
     init = true;
     ++serial;
-}
-
-void Frame::setJC()
-{
-    jc = static_cast<unsigned char>(buffer[JC_POS]);
-    jc <<= 8;
-    jc |= static_cast<unsigned char>(buffer[JC_POS+frame_size/4]);
-
-    int indicator = jc & 0b11;
-    jc >>= 2;
-    switch (indicator)
-    {
-        case 0x2:
-            jc ^= inverted_nums[0];
-            return;
-        case 0x1:
-            jc ^= inverted_nums[1];
-            return;
-    }
 }
 
 char Frame::getPayloadByte(size_t pos)
@@ -37,10 +23,19 @@ char Frame::getPayloadByte(size_t pos)
     return buffer[a];
 }
 
-void Frame::descramble(Descrambler descrambler)
+void Frame::descramble(Descrambler& descrambler)
 {
     for (int j = 6; j < getSize(); ++j)
         buffer[j] ^= descrambler[j - 6];
+}
+
+void Frame::setPayload()
+{
+    std::vector<char> payload;
+    for (int i=0; i<4; ++i)
+        payload.insert(payload.end(), &buffer[16+(i*frame_size/4)], &buffer[3816+(i*frame_size/4)]);
+    buffer=payload;
+    frame_size=payload.size();
 }
 
 char updateScrambler(char* initial, char bit)
@@ -67,4 +62,3 @@ Descrambler::Descrambler(size_t size)
         sequence[i] = byte;
     }
 }
-
